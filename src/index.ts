@@ -3,6 +3,9 @@ import { log } from 'node:console'
 import { createServer } from 'node:http'
 import { Server } from 'socket.io'
 import cors from 'cors'
+import dotenv from 'dotenv'
+
+dotenv.config()
 
 const app=express()
 app.use(cors())
@@ -70,7 +73,7 @@ io.on('connection',(socket)=>{
 
 async function main(){
 
-    await mongoose.connect("mongodb+srv://shivanshu192004:mongodb12345@cluster0.ajjuw.mongodb.net/Chat-App")
+    await mongoose.connect(process.env.MONGO_URL as string)
     console.log("Database connected");
     server.listen(3000,()=>{
         console.log("Server running on PORT 3000");
