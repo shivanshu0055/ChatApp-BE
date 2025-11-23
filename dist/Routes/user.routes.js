@@ -1,0 +1,14 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.userRouter = void 0;
+const express_1 = require("express");
+const auth_middleware_1 = require("../Middlewares/auth.middleware");
+const user_controller_1 = require("../Controllers/user.controller");
+exports.userRouter = (0, express_1.Router)();
+exports.userRouter.post("/getAllCreatedRooms", auth_middleware_1.authMiddleware, user_controller_1.getAllCreatedRooms);
+exports.userRouter.post("/getRoomChats", auth_middleware_1.authMiddleware, user_controller_1.getRoomChats);
+exports.userRouter.post("/addMessage", auth_middleware_1.authMiddleware, user_controller_1.addMessage);
+exports.userRouter.post("/deleteRoom", auth_middleware_1.authMiddleware, user_controller_1.deleteRoom);
+exports.userRouter.post("/createRoom", auth_middleware_1.authMiddleware, user_controller_1.createRoom);
+exports.userRouter.post("/deleteMessage", auth_middleware_1.authMiddleware, user_controller_1.deleteMessage);
+exports.userRouter.post("/deleteMessageByAdmin", auth_middleware_1.authMiddleware, user_controller_1.deleteMessageByAdmin);
