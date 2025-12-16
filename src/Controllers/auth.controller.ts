@@ -6,10 +6,10 @@ import dotenv from "dotenv";
 dotenv.config(); 
 
 export const signup=async (req:Request,res:Response)=>{
-    console.log(req.body);
+    // console.log(req.body);
     
     const { username,password }=req.body
-    console.log("Hello");
+    // console.log("Hello");
     
     const dbUser=await UserModel.findOne({
         username:username
@@ -41,10 +41,9 @@ export const signin=async (req:Request,res:Response)=>{
     })
 
     if(!userDB){
-        res.status(400).json({
+        return res.status(400).json({
             "error":"Wrong Credentials"
         })
-        return
     }
 
     if(!process.env.JWT_TOKEN){
@@ -58,8 +57,9 @@ export const signin=async (req:Request,res:Response)=>{
         username:userDB.username
     },process.env.JWT_TOKEN)
 
-    res.status(200).json({
-        token:JSONToken,
+    return res.status(200).json({
+        token:JSONToken
     })
 
 }
+

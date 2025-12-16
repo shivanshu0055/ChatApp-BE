@@ -18,9 +18,9 @@ const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
 const signup = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    console.log(req.body);
+    // console.log(req.body);
     const { username, password } = req.body;
-    console.log("Hello");
+    // console.log("Hello");
     const dbUser = yield DB_1.UserModel.findOne({
         username: username
     });
@@ -45,10 +45,9 @@ const signin = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         password: password
     });
     if (!userDB) {
-        res.status(400).json({
+        return res.status(400).json({
             "error": "Wrong Credentials"
         });
-        return;
     }
     if (!process.env.JWT_TOKEN) {
         return res.status(400).json({
@@ -59,8 +58,8 @@ const signin = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         userID: userDB._id,
         username: userDB.username
     }, process.env.JWT_TOKEN);
-    res.status(200).json({
-        token: JSONToken,
+    return res.status(200).json({
+        token: JSONToken
     });
 });
 exports.signin = signin;

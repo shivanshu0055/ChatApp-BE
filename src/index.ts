@@ -15,6 +15,8 @@ const server=createServer(app)
 import mongoose from 'mongoose'
 import { authRouter } from './Routes/auth.routes'
 import { userRouter } from './Routes/user.routes'
+import { saveMessageDM } from './Controllers/user.controller'
+import { MessageModel, RoomModel } from './DB/DB'
 
 declare global {
     namespace Express {
@@ -24,11 +26,8 @@ declare global {
     }
   }
   
-
 app.use("/api/auth",authRouter)
 app.use("/api/user",userRouter)
-
-const users=new Map()
 
 const io = new Server(server, {
     cors: {
@@ -42,37 +41,97 @@ app.get("/",(req:Request,res:Response)=>{
 
 io.on('connection',(socket)=>{
 
-    socket.on('join-room',(msg)=>{
-        socket.join(msg.roomID)
-        users.set(socket.id,msg.username)    
-        io.to(msg.roomID).emit("joined-room",{
-            socketID:socket.id,
-            username:users.get(socket.id)
-        })
+    // initializing
+    socket.on("setup",(data)=>{
+        socket.join(data.userID)
     })
 
-    socket.on('send-message',(msg)=>{
-        io.to(msg.roomID).emit("recieve-message",{
-            socketID:socket.id,
-            message:msg.message,
-            username:users.get(socket.id)
-        })
+    // join a room
+    socket.on("join-room",async (data)=>{  
+        const roomID=data.roomID
+        const userID=data.userID
+        if(data.convoType=="DM"){
+            socket.join(roomID)
+            io.to(roomID).emit("announcement",`${userID} has joined roomID ${roomID}`)
+            
+        }
+        else{   
+            socket.join(roomID)
+            await RoomModel.updateOne(
+                {_id:roomID},
+                {$addToSet:{participants:userID}}
+            )
+            io.to(roomID).emit("announcement",`${userID} has joined roomID ${roomID}`)
+
+        }
     })
 
-    socket.on('leave-room',(msg)=>{
-        socket.leave(msg.roomID)
-        io.to(msg.roomID).emit("left-room",{
-            socketID:socket.id,
-            message:msg.message,
-            username:users.get(socket.id)
-        })
+    // leave a room
+    socket.on("leave-room",async (data)=>{  
+        const roomID=data.roomID
+        const userID=data.userID
+
+        socket.leave(roomID)
+        
+        await RoomModel.updateOne(
+            {_id:roomID},
+            {$pull:{participants:userID}}
+        )
+        io.to(roomID).emit("announcement",`${userID} has left roomID ${roomID}`)
+
     })
+
+    // send a message
+    socket.on("send-message",async (data)=>{
+        const roomID=data.roomID
+        const senderID=data.userID
+        const text=data.text
+        await saveMessageDM(senderID,roomID,text)
+        io.to(roomID).emit("new-message-noti",data)
+    })
+
+    // delete a message
+    socket.on("delete-message", async (data) => {
+        const roomID=data.roomID
+        const senderID=data.userID
+        const messageID=data.messageID
+        // find message
+        const message=await MessageModel.findById(messageID)
+
+        if(!message){
+            console.log("Message doesn't exists");
+            return
+        }
+
+        await MessageModel.deleteOne({
+            userID:senderID,
+            _id:messageID
+        })
+
+        const room=await RoomModel.findById(message.roomID)
+
+        let newLastMessage=room?.lastMessage || null
+        
+        if(room?.lastMessage?.toString()==messageID){
+            const tempLastMessage=await MessageModel.findOne({roomID:message.roomID}).sort({createdAt:-1})
+            newLastMessage=tempLastMessage?._id || null
+            await RoomModel.updateOne({_id:message.roomID},{lastMessage:newLastMessage})
+        }
+
+        io.to(message.roomID.toString()).emit("delete-message-noti",{
+            roomID:message.roomID.toString(),
+            deletorID:senderID,
+            messageID:messageID,
+            newLastMessage:newLastMessage
+        })
+
+    });
+
 
 })
 
 
 async function main(){
-
     await mongoose.connect(process.env.MONGO_URL as string)
     console.log("Database connected");
     server.listen(3000,()=>{

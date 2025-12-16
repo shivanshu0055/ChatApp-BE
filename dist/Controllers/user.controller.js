@@ -9,103 +9,143 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteMessageByAdmin = exports.deleteMessage = exports.deleteRoom = exports.createRoom = exports.addMessage = exports.getRoomChats = exports.getAllCreatedRooms = void 0;
+exports.saveMessageDM = exports.createRoom = exports.getRoomID = exports.getPendingRequests = exports.getFriends = exports.getChatList = exports.rejectFriendRequest = exports.acceptFriendRequest = exports.sendFriendRequest = void 0;
 const DB_1 = require("../DB/DB");
-const getAllCreatedRooms = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+const sendFriendRequest = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { receiverID } = req.body;
+    const senderID = req.userID;
+    const requestDB = yield DB_1.FriendRequestModel.find({
+        senderID: senderID,
+        receiverID: receiverID,
+    });
+    if (requestDB) {
+        return res.status(401).json({
+            "message": "friend request already sent"
+        });
+    }
+    const requestDBReverse = yield DB_1.FriendRequestModel.find({
+        senderID: receiverID,
+        receiverID: senderID
+    });
+    if (requestDBReverse) {
+        return res.status(401).json({
+            "message": "The other person has already sent you a friend request"
+        });
+    }
+    const request = yield DB_1.FriendRequestModel.create({
+        senderID: senderID,
+        receiverID: receiverID,
+    });
+    yield DB_1.UserModel.updateOne({ _id: receiverID }, { $addToSet: { receivedRequests: request._id } });
+    yield DB_1.UserModel.updateOne({ _id: senderID }, { $addToSet: { sentRequests: request._id } });
+    return res.status(200).json({
+        "message": "friend request sent successfully"
+    });
+});
+exports.sendFriendRequest = sendFriendRequest;
+const acceptFriendRequest = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { requestID } = req.body;
+    const request = yield DB_1.FriendRequestModel.findOneAndUpdate({ _id: requestID }, { $set: { status: "Accepted" } }, { new: true });
+    if (!request) {
+        return;
+    }
+    const senderID = request.senderID;
+    const receiverID = request.receiverID;
+    yield DB_1.UserModel.updateOne({ _id: senderID }, { $addToSet: { friends: receiverID } });
+    yield DB_1.UserModel.updateOne({ _id: receiverID }, { $addToSet: { friends: senderID } });
+    return res.status(201).json({
+        "message": "friend request accepted"
+    });
+});
+exports.acceptFriendRequest = acceptFriendRequest;
+const rejectFriendRequest = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { requestID } = req.body;
+    const request = yield DB_1.FriendRequestModel.findOneAndUpdate({ _id: requestID }, { $set: { status: "Rejected" } }, { new: true });
+    if (!request) {
+        return;
+    }
+    const senderID = request.senderID;
+    const receiverID = request.receiverID;
+    yield DB_1.UserModel.updateOne({ _id: senderID }, { $pull: { sentRequests: requestID } });
+    yield DB_1.UserModel.updateOne({ _id: receiverID }, { $pull: { receivedRequests: requestID } });
+    return res.status(201).json({
+        "message": "friend request rejected"
+    });
+});
+exports.rejectFriendRequest = rejectFriendRequest;
+const getChatList = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+});
+exports.getChatList = getChatList;
+const getFriends = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const userID = req.userID;
-    const createdRooms = yield DB_1.RoomModel.find({
-        creatorID: userID
+    const friendList = yield DB_1.UserModel.findById(userID);
+    if (!friendList) {
+        return res.status(401).json({
+            "error": "An error occured !"
+        });
+    }
+    return res.status(201).json({
+        "friends": friendList.friends
+    });
+});
+exports.getFriends = getFriends;
+const getPendingRequests = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const userID = req.userID;
+    const pendingRequests = yield DB_1.FriendRequestModel.find({
+        receiverID: userID,
+        status: "Pending"
+    });
+    return res.status(200).json({
+        "requests": pendingRequests
+    });
+});
+exports.getPendingRequests = getPendingRequests;
+const getRoomID = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const userIDA = req.userID;
+    const { userIDB } = req.body;
+    // check if a room exists between these 2 
+    let room = yield DB_1.RoomModel.findOne({
+        isGroupChat: false,
+        participants: {
+            $all: [userIDA, userIDB],
+            $size: 2
+        }
+    });
+    if (!room) {
+        room = yield DB_1.RoomModel.create({
+            creatorID: userIDA,
+            participants: [userIDA, userIDB]
+        });
+    }
+    return res.status(201).json({
+        "roomID": room._id
+    });
+});
+exports.getRoomID = getRoomID;
+const createRoom = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { roomName } = req.body;
+    const userID = req.userID;
+    const room = yield DB_1.RoomModel.create({
+        roomName: roomName,
+        creatorID: userID,
+        isGroupChat: true,
+        participants: [userID]
     });
     return res.status(201).json({
-        "createdRooms": createdRooms
-    });
-});
-exports.getAllCreatedRooms = getAllCreatedRooms;
-const getRoomChats = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const userID = req.userID;
-    const roomID = req.body.roomID;
-    const messages = yield DB_1.MessageModel.find({
-        roomID: roomID
-    }).populate("userID", "username")
-        .sort({ createdAt: 1 });
-    res.status(201).json({
-        "messages": messages
-    });
-});
-exports.getRoomChats = getRoomChats;
-const addMessage = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const userID = req.userID;
-    const roomID = req.body.roomID;
-    const text = req.body.text;
-    const message = yield DB_1.MessageModel.create({
-        roomID: roomID,
-        userID: userID,
-        type: "message",
-        text: text
-    });
-    res.status(201).json({
-        "message": message
-    });
-});
-exports.addMessage = addMessage;
-const createRoom = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const userID = req.userID;
-    const roomID = req.body.roomID;
-    const newRoom = yield DB_1.RoomModel.create({
-        roomID: roomID,
-        creatorID: userID
-    });
-    res.status(201).json({
-        "newRoom": newRoom
+        "room": room
     });
 });
 exports.createRoom = createRoom;
-const deleteRoom = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const userID = req.userID;
-    const roomID = req.body.roomID;
-    yield DB_1.RoomModel.deleteOne({
-        roomID: roomID
-    });
-    res.status(201).json({
-        "info": "Room deleted successfully"
-    });
-});
-exports.deleteRoom = deleteRoom;
-const deleteMessage = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const userID = req.userID;
-    const messageID = req.body.messageID;
-    yield DB_1.MessageModel.updateOne({ _id: messageID, userID: userID }, {
-        $set: {
-            text: "Message has been deleted by user",
-            type: "deleted-message",
-        },
-    });
-    res.status(201).json({
-        "info": "Room deleted/updated successfully"
-    });
-});
-exports.deleteMessage = deleteMessage;
-const deleteMessageByAdmin = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const messageID = req.body.messageID;
-    const userID = req.userID;
-    const roomID = req.body.roomID;
-    const room = yield DB_1.RoomModel.findOne({
+const saveMessageDM = (senderID, roomID, text) => __awaiter(void 0, void 0, void 0, function* () {
+    const userIDA = senderID;
+    // console.log(userIDA);
+    const message = yield DB_1.MessageModel.create({
+        userID: userIDA,
+        text: text,
         roomID: roomID,
-        creatorID: userID
     });
-    if (!room) {
-        res.status(400).json({
-            "message": "Your are not the admin"
-        });
-    }
-    yield DB_1.MessageModel.updateOne({ _id: messageID }, {
-        $set: {
-            text: "Message has been deleted by admin",
-            type: "deleted-message",
-        },
-    });
-    res.status(201).json({
-        "info": "Message deleted/updated successfully"
+    yield DB_1.RoomModel.findByIdAndUpdate(roomID, {
+        lastMessage: message._id
     });
 });
-exports.deleteMessageByAdmin = deleteMessageByAdmin;
+exports.saveMessageDM = saveMessageDM;
