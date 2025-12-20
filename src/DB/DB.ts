@@ -9,7 +9,6 @@ const userSchema=new Schema({
     sentRequests:[{type:Schema.Types.ObjectId,ref:'FriendRequests'}],
 })
 
-
 const friendRequestSchema=new Schema({
     senderID:{type:Schema.Types.ObjectId,ref:'Users',required:true},
     receiverID:{type:Schema.Types.ObjectId,ref:'Users',required:true},
@@ -19,27 +18,42 @@ const friendRequestSchema=new Schema({
     timestamps:true,
 })
 
-const roomSchema=new Schema({
-    roomName:{type:String},
-    creatorID:{type:Schema.Types.ObjectId,ref:'Users',required:true},
-    participants:[{type:Schema.Types.ObjectId,ref:'Users'}],
-    isGroupChat:{type:Boolean,required:true,default:false},
-    lastMessage:{type:Schema.Types.ObjectId,ref:'Messages'}
-},{
-    timestamps:true
-})
+const chatSchema = new Schema({
+    participants: [
+      { type: Schema.Types.ObjectId, ref: "Users", required: true }
+    ],
+    isGroupChat: { type: Boolean, default: false },
+    groupName: { type: String }, 
+    lastMessage: {
+      type: Schema.Types.ObjectId,
+      ref: "Messages"
+    },
+    admin: {
+        type: Schema.Types.ObjectId,
+        ref: "Users",
+        required: function () {
+          return this.isGroupChat;
+        }
+    }
+  }, { timestamps: true });
+  
+  const messageSchema = new Schema({
+    chatID: {
+      type: Schema.Types.ObjectId,
+      ref: "Chats",
+      required: true
+    },
+    userID: {
+      type: Schema.Types.ObjectId,
+      ref: "Users",
+      required: true
+    },
+    content: { type: String, required: true },
+    readBy: [{ type: Schema.Types.ObjectId, ref: "Users" }]
+  }, { timestamps: true });
 
-const messageSchema=new Schema({
-    userID:{type:Schema.Types.ObjectId,ref:'Users',required:true},
-    roomID:{type:Schema.Types.ObjectId,ref:'Rooms',required:true},
-    text:{type:String,required:true},
-    readBy:[{type:Schema.Types.ObjectId,ref:'Users'}],
-    groupChat:{type:Boolean,default:false}
-},{
-    timestamps:true,
-})
-
+  
 export const UserModel = model("Users", userSchema);
-export const RoomModel = model("Rooms", roomSchema);
+export const ChatModel = model("Chats", chatSchema);
 export const MessageModel = model("Messages", messageSchema);
 export const FriendRequestModel = model("FriendRequests", friendRequestSchema);

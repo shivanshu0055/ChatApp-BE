@@ -1,0 +1,10 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.messageRouter = void 0;
+const express_1 = require("express");
+const auth_middleware_1 = require("../Middlewares/auth.middleware");
+const message_controller_1 = require("../Controllers/message.controller");
+exports.messageRouter = (0, express_1.Router)();
+exports.messageRouter.post("/sendMessage", auth_middleware_1.authMiddleware, message_controller_1.sendMessage);
+exports.messageRouter.post("/getMessagesByChatID", auth_middleware_1.authMiddleware, message_controller_1.getMessagesByChatID);
+exports.messageRouter.post("/deleteMessage/:messageID", auth_middleware_1.authMiddleware, message_controller_1.deleteMessage);

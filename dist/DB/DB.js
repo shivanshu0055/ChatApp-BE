@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.FriendRequestModel = exports.MessageModel = exports.RoomModel = exports.UserModel = void 0;
+exports.FriendRequestModel = exports.MessageModel = exports.ChatModel = exports.UserModel = void 0;
 const mongoose_1 = require("mongoose");
 const mongoose_2 = require("mongoose");
 const userSchema = new mongoose_1.Schema({
@@ -17,25 +17,39 @@ const friendRequestSchema = new mongoose_1.Schema({
 }, {
     timestamps: true,
 });
-const roomSchema = new mongoose_1.Schema({
-    roomName: { type: String },
-    creatorID: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Users', required: true },
-    participants: [{ type: mongoose_1.Schema.Types.ObjectId, ref: 'Users' }],
-    isGroupChat: { type: Boolean, required: true, default: false },
-    lastMessage: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Messages' }
-}, {
-    timestamps: true
-});
+const chatSchema = new mongoose_1.Schema({
+    participants: [
+        { type: mongoose_1.Schema.Types.ObjectId, ref: "Users", required: true }
+    ],
+    isGroupChat: { type: Boolean, default: false },
+    groupName: { type: String },
+    lastMessage: {
+        type: mongoose_1.Schema.Types.ObjectId,
+        ref: "Messages"
+    },
+    admin: {
+        type: mongoose_1.Schema.Types.ObjectId,
+        ref: "Users",
+        required: function () {
+            return this.isGroupChat;
+        }
+    }
+}, { timestamps: true });
 const messageSchema = new mongoose_1.Schema({
-    userID: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Users', required: true },
-    roomID: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Rooms', required: true },
-    text: { type: String, required: true },
-    readBy: [{ type: mongoose_1.Schema.Types.ObjectId, ref: 'Users' }],
-    groupChat: { type: Boolean, default: false }
-}, {
-    timestamps: true,
-});
+    chatID: {
+        type: mongoose_1.Schema.Types.ObjectId,
+        ref: "Chats",
+        required: true
+    },
+    userID: {
+        type: mongoose_1.Schema.Types.ObjectId,
+        ref: "Users",
+        required: true
+    },
+    content: { type: String, required: true },
+    readBy: [{ type: mongoose_1.Schema.Types.ObjectId, ref: "Users" }]
+}, { timestamps: true });
 exports.UserModel = (0, mongoose_2.model)("Users", userSchema);
-exports.RoomModel = (0, mongoose_2.model)("Rooms", roomSchema);
+exports.ChatModel = (0, mongoose_2.model)("Chats", chatSchema);
 exports.MessageModel = (0, mongoose_2.model)("Messages", messageSchema);
 exports.FriendRequestModel = (0, mongoose_2.model)("FriendRequests", friendRequestSchema);

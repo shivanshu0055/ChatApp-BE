@@ -17,91 +17,141 @@ const node_http_1 = require("node:http");
 const socket_io_1 = require("socket.io");
 const cors_1 = __importDefault(require("cors"));
 const dotenv_1 = __importDefault(require("dotenv"));
+const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+const mongoose_1 = __importDefault(require("mongoose"));
+const auth_routes_1 = require("./Routes/auth.routes");
+const user_routes_1 = require("./Routes/user.routes");
+const message_routes_1 = require("./Routes/message.routes");
+const friend_routes_1 = require("./Routes/friend.routes");
+const chat_routes_1 = require("./Routes/chat.routes");
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 app.use((0, cors_1.default)());
 app.use(express_1.default.json());
 const server = (0, node_http_1.createServer)(app);
-const mongoose_1 = __importDefault(require("mongoose"));
-const auth_routes_1 = require("./Routes/auth.routes");
-const user_routes_1 = require("./Routes/user.routes");
-const user_controller_1 = require("./Controllers/user.controller");
-const DB_1 = require("./DB/DB");
 app.use("/api/auth", auth_routes_1.authRouter);
 app.use("/api/user", user_routes_1.userRouter);
+app.use("/api/message", message_routes_1.messageRouter);
+app.use("api/friend", friend_routes_1.friendRouter);
+app.use("/api/chat", chat_routes_1.chatRouter);
 const io = new socket_io_1.Server(server, {
     cors: {
-        origin: "*"
-    }
+        origin: "*",
+    },
 });
 app.get("/", (req, res) => {
     res.send("Hello World");
 });
-io.on('connection', (socket) => {
-    // initializing
-    socket.on("setup", (data) => {
-        socket.join(data.userID);
+io.use((socket, next) => {
+    var _a;
+    try {
+        const token = (_a = socket.handshake.auth) === null || _a === void 0 ? void 0 : _a.token;
+        if (!token) {
+            return next(new Error("Authentication token missing"));
+        }
+        if (!process.env.JWT_TOKEN) {
+            return next(new Error("JWT secret not configured"));
+        }
+        const decoded = jsonwebtoken_1.default.verify(token, process.env.JWT_TOKEN);
+        if (!decoded || typeof decoded === "string") {
+            return next(new Error("Invalid token"));
+        }
+        socket.userID = decoded.userID;
+        next();
+    }
+    catch (err) {
+        next(new Error("Authentication failed"));
+    }
+});
+io.on("connection", (socket) => {
+    console.log("⚡ Socket connected:", socket.id, "User:", socket.userID);
+    // ============================================================
+    // 1️⃣ USER PERSONAL ROOM (for notifications)
+    // ============================================================
+    socket.join(`user_${socket.userID}`);
+    console.log(`User ${socket.userID} joined personal room user_${socket.userID}`);
+    // Notify others that user is online
+    io.emit("user-online", { userId: socket.userID });
+    // Tell THIS client that socket is ready
+    socket.emit("connected");
+    // ============================================================
+    // 2️⃣ USER JOINS A CHAT ROOM (DM OR GROUP)
+    // ============================================================
+    socket.on("join-chat", (chatId) => {
+        socket.join(chatId);
+        console.log(`User ${socket.userID} joined chat room → ${chatId}`);
     });
-    // join a room
-    socket.on("join-room", (data) => __awaiter(void 0, void 0, void 0, function* () {
-        const roomID = data.roomID;
-        const userID = data.userID;
-        if (data.convoType == "DM") {
-            socket.join(roomID);
-            io.to(roomID).emit("announcement", `${userID} has joined roomID ${roomID}`);
+    // ============================================================
+    // 3️⃣ LEAVE CHAT ROOM
+    // ============================================================
+    socket.on("leave-chat", (chatId) => {
+        socket.leave(chatId);
+        console.log(`User ${socket.userID} left chat room → ${chatId}`);
+    });
+    // ============================================================
+    // 4️⃣ SEND MESSAGE (DM/GROUP)
+    // ============================================================
+    socket.on("new-message", (data) => __awaiter(void 0, void 0, void 0, function* () {
+        // data contains message
+        try {
+            const { chatID, content } = data;
+            // Send real-time message to all inside the chat (except sender)
+            socket.to(chatID).emit("message-received", data);
+            data === null || data === void 0 ? void 0 : data.participants.forEach((_id) => {
+                if (_id.toString() !== socket.userID) {
+                    io.to(`user_${_id}`).emit("notify-new-message", data);
+                }
+            });
         }
-        else {
-            socket.join(roomID);
-            yield DB_1.RoomModel.updateOne({ _id: roomID }, { $addToSet: { participants: userID } });
-            io.to(roomID).emit("announcement", `${userID} has joined roomID ${roomID}`);
+        catch (err) {
+            console.error("Message error:", err);
         }
     }));
-    // leave a room
-    socket.on("leave-room", (data) => __awaiter(void 0, void 0, void 0, function* () {
-        const roomID = data.roomID;
-        const userID = data.userID;
-        socket.leave(roomID);
-        yield DB_1.RoomModel.updateOne({ _id: roomID }, { $pull: { participants: userID } });
-        io.to(roomID).emit("announcement", `${userID} has left roomID ${roomID}`);
-    }));
-    // send a message
-    socket.on("send-message", (data) => __awaiter(void 0, void 0, void 0, function* () {
-        const roomID = data.roomID;
-        const senderID = data.userID;
-        const text = data.text;
-        yield (0, user_controller_1.saveMessageDM)(senderID, roomID, text);
-        io.to(roomID).emit("new-message-noti", data);
-    }));
-    // delete a message
+    // ============================================================
+    // 5️⃣ DELETE MESSAGE
+    // ============================================================
     socket.on("delete-message", (data) => __awaiter(void 0, void 0, void 0, function* () {
-        var _a;
-        const roomID = data.roomID;
-        const senderID = data.userID;
-        const messageID = data.messageID;
-        // find message
-        const message = yield DB_1.MessageModel.findById(messageID);
-        if (!message) {
-            console.log("Message doesn't exists");
-            return;
-        }
-        yield DB_1.MessageModel.deleteOne({
-            userID: senderID,
-            _id: messageID
-        });
-        const room = yield DB_1.RoomModel.findById(message.roomID);
-        let newLastMessage = (room === null || room === void 0 ? void 0 : room.lastMessage) || null;
-        if (((_a = room === null || room === void 0 ? void 0 : room.lastMessage) === null || _a === void 0 ? void 0 : _a.toString()) == messageID) {
-            const tempLastMessage = yield DB_1.MessageModel.findOne({ roomID: message.roomID }).sort({ createdAt: -1 });
-            newLastMessage = (tempLastMessage === null || tempLastMessage === void 0 ? void 0 : tempLastMessage._id) || null;
-            yield DB_1.RoomModel.updateOne({ _id: message.roomID }, { lastMessage: newLastMessage });
-        }
-        io.to(message.roomID.toString()).emit("delete-message-noti", {
-            roomID: message.roomID.toString(),
-            deletorID: senderID,
-            messageID: messageID,
-            newLastMessage: newLastMessage
-        });
+        // data contains soft deleted message
+        io.to(data.chatID).emit("message-deleted", data);
     }));
+    // ============================================================
+    // 6️⃣ EDIT MESSAGE
+    // ============================================================
+    socket.on("edit-message", (data) => __awaiter(void 0, void 0, void 0, function* () {
+        // data contains updated message
+        io.to(data.chatID).emit("message-edited", data);
+    }));
+    // ============================================================
+    // 7️⃣ TYPING EVENTS
+    // ============================================================
+    socket.on("typing", (chatId) => {
+        socket.to(chatId).emit("typing", { userId: socket.userID });
+    });
+    socket.on("stop-typing", (chatId) => {
+        socket.to(chatId).emit("stop-typing", { userId: socket.userID });
+    });
+    socket.on("group-added-user", ({ chatId, userId }) => {
+        io.to(chatId).emit("group-added-user", { userId });
+        io.to(`user_${userId}`).emit("group-added-user", { chatId });
+    });
+    socket.on("group-removed-user", ({ chatId, userId }) => {
+        io.to(chatId).emit("group-removed-user", { userId });
+    });
+    socket.on("group-renamed", ({ chatId, newName }) => {
+        io.to(chatId).emit("group-renamed", { chatId, newName });
+    });
+    socket.on("group-deleted", ({ chatId }) => {
+        io.to(chatId).emit("group-deleted", { chatId });
+    });
+    // ============================================================
+    // 🔟 USER DISCONNECT
+    // ============================================================
+    socket.on("disconnect", () => {
+        console.log(`❌ User ${socket.userID} disconnected`);
+        io.emit("user-offline", {
+            userID: socket.userID,
+        });
+    });
 });
 function main() {
     return __awaiter(this, void 0, void 0, function* () {

@@ -1,0 +1,12 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.friendRouter = void 0;
+const express_1 = require("express");
+const auth_middleware_1 = require("../Middlewares/auth.middleware");
+const friend_controller_1 = require("../Controllers/friend.controller");
+exports.friendRouter = (0, express_1.Router)();
+exports.friendRouter.post("/sendFriendRequest", auth_middleware_1.authMiddleware, friend_controller_1.sendFriendRequest);
+exports.friendRouter.post("/acceptFriendRequest", auth_middleware_1.authMiddleware, friend_controller_1.acceptFriendRequest);
+exports.friendRouter.post("/rejectFriendRequest", auth_middleware_1.authMiddleware, friend_controller_1.rejectFriendRequest);
+exports.friendRouter.post("/cancelFriendRequest", auth_middleware_1.authMiddleware, friend_controller_1.cancelFriendRequest);
+exports.friendRouter.post("/getPendingRequests", auth_middleware_1.authMiddleware, friend_controller_1.getPendingRequests);
