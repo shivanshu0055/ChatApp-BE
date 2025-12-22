@@ -5,7 +5,7 @@ const express_1 = require("express");
 const auth_middleware_1 = require("../Middlewares/auth.middleware");
 const user_controller_1 = require("../Controllers/user.controller");
 exports.userRouter = (0, express_1.Router)();
-exports.userRouter.post("/getFriends", auth_middleware_1.authMiddleware, user_controller_1.getFriends);
+exports.userRouter.get("/getFriends", auth_middleware_1.authMiddleware, user_controller_1.getFriends);
 exports.userRouter.post("/searchGroups", auth_middleware_1.authMiddleware, user_controller_1.searchGroups);
 exports.userRouter.post("/searchUsers", auth_middleware_1.authMiddleware, user_controller_1.searchUsers);
 exports.userRouter.post("/getRecentGroups", auth_middleware_1.authMiddleware, user_controller_1.getRecentGroups);

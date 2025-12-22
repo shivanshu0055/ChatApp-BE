@@ -32,6 +32,7 @@ export const searchUsers=async (req:Request,res:Response)=>{
         username: { $regex: username, $options: 'i' },
         _id: { $ne: userID }
     })
+    .populate("receivedRequests","senderID")
     .limit(5) 
 
     return res.status(200).json({

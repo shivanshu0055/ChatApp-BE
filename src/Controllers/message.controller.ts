@@ -45,7 +45,7 @@ export const sendMessage = async (req: Request, res: Response) => {
     await chat.save();
 
     const populatedMessage = await MessageModel.findById(message._id)
-      .populate("sender", "username")
+      .populate("sender", "username _id")
       .populate("chatID");
 
     return res.status(200).json({
@@ -59,21 +59,17 @@ export const sendMessage = async (req: Request, res: Response) => {
     });
   }
 };
+
 // Version supporting cursor-based pagination suitable for infinite queries
 export const getMessagesByChatID = async (req: Request, res: Response) => {
   try {
-    const { chatID, cursor } = req.query;
+    const { chatID } = req.params;
+    const { cursor, limit } = req.query;
     const userID = req.userID;
     
     // limit = number of messages per page/batch, default to 20
-    let limit = parseInt(req.query.limit as string) || 20;
-    if (limit < 1) limit = 1;
-
-    if (!chatID || typeof chatID !== "string") {
-      return res.status(400).json({
-        error: "chatID query parameter is required",
-      });
-    }
+    let limitNum = parseInt(limit as string) || 20;
+    if (limitNum < 1) limitNum = 1;
 
     // Check if chat exists
     const chat = await ChatModel.findById(chatID);
@@ -104,14 +100,14 @@ export const getMessagesByChatID = async (req: Request, res: Response) => {
 
     // Find messages in reverse chronological order
     let messages = await MessageModel.find(query)
-      .populate("userID")
+      .populate("sender", "username _id")
       .sort({ _id: -1 }) // newest first
-      .limit(limit + 1); // fetch one extra to check for next page
+      .limit(limitNum + 1); // fetch one extra to check for next page
 
     // Determine if there is a next page
-    const hasNextPage = messages.length > limit;
+    const hasNextPage = messages.length > limitNum;
     if (hasNextPage) {
-      messages = messages.slice(0, limit);
+      messages = messages.slice(0, limitNum);
     }
 
     // Send messages in chronological order (oldest first if desired)
@@ -146,7 +142,7 @@ export const deleteMessage = async (req: any, res: any) => {
     }
 
     // Only the sender can delete their message (add admin logic here if needed)
-    if (message.userID.toString() !== userId.toString()) {
+    if (message.sender.toString() !== userId.toString()) {
       return res.status(403).json({ error: 'You cannot delete this message' });
     }
 

@@ -32,7 +32,7 @@ const server = (0, node_http_1.createServer)(app);
 app.use("/api/auth", auth_routes_1.authRouter);
 app.use("/api/user", user_routes_1.userRouter);
 app.use("/api/message", message_routes_1.messageRouter);
-app.use("api/friend", friend_routes_1.friendRouter);
+app.use("/api/friend", friend_routes_1.friendRouter);
 app.use("/api/chat", chat_routes_1.chatRouter);
 const io = new socket_io_1.Server(server, {
     cors: {

@@ -38,7 +38,7 @@ declare module "socket.io" {
 app.use("/api/auth", authRouter);
 app.use("/api/user", userRouter);
 app.use("/api/message", messageRouter);
-app.use("api/friend",friendRouter)
+app.use("/api/friend",friendRouter)
 app.use("/api/chat",chatRouter)
 
 const io = new Server(server, {
@@ -126,7 +126,7 @@ io.use((socket, next) => {
             io.to(`user_${_id}`).emit("notify-new-message", data);
           }
         });
-        
+
       } catch (err) {
         console.error("Message error:", err);
       }

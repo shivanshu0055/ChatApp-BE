@@ -41,7 +41,7 @@ const messageSchema = new mongoose_1.Schema({
         ref: "Chats",
         required: true
     },
-    userID: {
+    sender: {
         type: mongoose_1.Schema.Types.ObjectId,
         ref: "Users",
         required: true

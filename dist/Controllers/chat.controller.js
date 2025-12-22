@@ -9,8 +9,21 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.leaveGroup = exports.joinGroup = exports.deleteChat = exports.createChat = exports.getGroupList = exports.getChatList = void 0;
+exports.leaveGroup = exports.joinGroup = exports.deleteChat = exports.createChat = exports.getGroupList = exports.getChatList = exports.getChat = void 0;
 const DB_1 = require("../DB/DB");
+const getChat = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { chatID } = req.params;
+    const userID = req.userID;
+    const chat = yield DB_1.ChatModel.findById(chatID).populate("participants", "username");
+    if (!chat) {
+        return res.status(404).json({ error: "Chat not found" });
+    }
+    if (!chat.participants.some(p => p._id.toString() === userID)) {
+        return res.status(403).json({ error: "Not a participant" });
+    }
+    return res.status(200).json(chat);
+});
+exports.getChat = getChat;
 const getChatList = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const userID = req.userID;
     const chatList = yield DB_1.ChatModel.find({

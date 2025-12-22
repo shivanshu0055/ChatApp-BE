@@ -36,6 +36,7 @@ const searchUsers = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
         username: { $regex: username, $options: 'i' },
         _id: { $ne: userID }
     })
+        .populate("receivedRequests", "senderID")
         .limit(5);
     return res.status(200).json({
         users: users

@@ -24,6 +24,7 @@ const authMiddleware = (req, res, next) => {
                 message: "JWT secret not configured on server",
             });
         }
+        // console.log(token);
         const verifiedPayload = jsonwebtoken_1.default.verify(token, process.env.JWT_TOKEN);
         if (!verifiedPayload || typeof verifiedPayload === "string") {
             return res.status(401).json({

@@ -85,6 +85,7 @@ const signin = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         return res.status(200).json({
             username: username,
             token: JSONToken,
+            userID: userDB._id
         });
     }
     catch (err) {

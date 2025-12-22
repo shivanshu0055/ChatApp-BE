@@ -4,7 +4,7 @@ import { getFriends, getRecentGroups, getUserByID, searchGroups, searchUsers } f
 
 export const userRouter=Router()
 
-userRouter.post("/getFriends",authMiddleware,getFriends)
+userRouter.get("/getFriends",authMiddleware,getFriends)
 userRouter.post("/searchGroups",authMiddleware,searchGroups)
 userRouter.post("/searchUsers",authMiddleware,searchUsers)
 userRouter.post("/getRecentGroups",authMiddleware,getRecentGroups)

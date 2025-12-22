@@ -43,7 +43,7 @@ const chatSchema = new Schema({
       ref: "Chats",
       required: true
     },
-    userID: {
+    sender: {
       type: Schema.Types.ObjectId,
       ref: "Users",
       required: true

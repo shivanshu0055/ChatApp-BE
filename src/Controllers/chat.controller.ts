@@ -2,6 +2,23 @@
 import { Request,Response } from "express"
 import { ChatModel, MessageModel } from "../DB/DB"
 
+export const getChat=async (req:Request,res:Response)=>{
+    const { chatID } = req.params
+    const userID = req.userID
+
+    const chat = await ChatModel.findById(chatID).populate("participants", "username")
+
+    if (!chat) {
+        return res.status(404).json({ error: "Chat not found" })
+    }
+
+    if (!chat.participants.some(p => p._id.toString() === userID)) {
+        return res.status(403).json({ error: "Not a participant" })
+    }
+
+    return res.status(200).json(chat)
+}
+
 export const getChatList=async (req:Request,res:Response)=>{
     const userID=req.userID
 

@@ -4,6 +4,8 @@ import { FriendRequestModel, UserModel } from "../DB/DB"
 export const sendFriendRequest = async (req:Request, res:Response) => {
     const {receiverID} = req.body
     const senderID = req.userID
+
+    // console.log("IN SEND FRIEND REQ");
     
     const requestDB = await FriendRequestModel.findOne({
         senderID,
@@ -166,7 +168,7 @@ export const getPendingRequests=async (req:Request,res:Response)=>{
     const pendingRequests=await FriendRequestModel.find({
         receiverID:userID,
         status:"Pending"
-    })
+    }).populate("senderID","username")
 
     return res.status(200).json({
         "requests":pendingRequests

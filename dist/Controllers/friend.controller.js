@@ -14,6 +14,7 @@ const DB_1 = require("../DB/DB");
 const sendFriendRequest = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { receiverID } = req.body;
     const senderID = req.userID;
+    // console.log("IN SEND FRIEND REQ");
     const requestDB = yield DB_1.FriendRequestModel.findOne({
         senderID,
         receiverID
@@ -115,7 +116,7 @@ const getPendingRequests = (req, res) => __awaiter(void 0, void 0, void 0, funct
     const pendingRequests = yield DB_1.FriendRequestModel.find({
         receiverID: userID,
         status: "Pending"
-    });
+    }).populate("senderID", "username");
     return res.status(200).json({
         "requests": pendingRequests
     });

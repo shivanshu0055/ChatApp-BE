@@ -89,6 +89,7 @@ export const signin = async (req: Request, res: Response) => {
     return res.status(200).json({
       username:username,
       token: JSONToken,
+      userID:userDB._id
     });
   } catch (err) {
     console.error(err);

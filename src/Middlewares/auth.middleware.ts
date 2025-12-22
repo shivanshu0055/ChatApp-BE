@@ -25,8 +25,11 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction) 
       });
     }
 
+    // console.log(token);
+    
     const verifiedPayload = jwt.verify(token, process.env.JWT_TOKEN) as JwtPayload | string;
-
+    
+    
     if (!verifiedPayload || typeof verifiedPayload === "string") {
       return res.status(401).json({
         message: "Token verification failed",

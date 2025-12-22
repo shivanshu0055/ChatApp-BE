@@ -5,7 +5,7 @@ import { deleteMessage, getMessagesByChatID, sendMessage } from "../Controllers/
 export const messageRouter=Router()
 
 messageRouter.post("/sendMessage",authMiddleware,sendMessage)
-messageRouter.post("/getMessagesByChatID",authMiddleware,getMessagesByChatID)
+messageRouter.get("/getMessagesByChatID/:chatID",authMiddleware,getMessagesByChatID)
 messageRouter.post("/deleteMessage/:messageID",authMiddleware,deleteMessage)
 
 
