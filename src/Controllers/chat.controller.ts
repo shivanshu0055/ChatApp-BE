@@ -43,6 +43,7 @@ export const getGroupList=async (req:Request,res:Response)=>{
         isGroupChat:true
       })
       .populate("participants", "username")
+      .populate("admin", "username")
       .populate("lastMessage")
       .sort({ updatedAt: -1 })
       

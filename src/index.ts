@@ -126,7 +126,6 @@ io.use((socket, next) => {
             io.to(`user_${_id}`).emit("notify-new-message", data);
           }
         });
-
       } catch (err) {
         console.error("Message error:", err);
       }

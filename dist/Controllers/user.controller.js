@@ -62,7 +62,7 @@ const searchGroups = (req, res) => __awaiter(void 0, void 0, void 0, function* (
 });
 exports.searchGroups = searchGroups;
 const getRecentGroups = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const recentGroups = yield DB_1.ChatModel.find({ isGroupChat: true }).sort({ createdAt: -1 }).limit(5);
+    const recentGroups = yield DB_1.ChatModel.find({ isGroupChat: true }).sort({ createdAt: -1 }).limit(10);
     return res.status(200).json({
         recentGroups: recentGroups
     });

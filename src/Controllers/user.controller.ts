@@ -63,7 +63,7 @@ export const searchGroups=async (req:Request,res:Response)=>{
 
 export const getRecentGroups=async (req:Request,res:Response)=>{
 
-    const recentGroups = await ChatModel.find({isGroupChat:true}).sort({ createdAt: -1 }).limit(5);
+    const recentGroups = await ChatModel.find({isGroupChat:true}).sort({ createdAt: -1 }).limit(10);
 
     return res.status(200).json({
         recentGroups: recentGroups

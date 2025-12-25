@@ -45,6 +45,7 @@ const getGroupList = (req, res) => __awaiter(void 0, void 0, void 0, function* (
         isGroupChat: true
     })
         .populate("participants", "username")
+        .populate("admin", "username")
         .populate("lastMessage")
         .sort({ updatedAt: -1 });
     return res.status(200).json({
