@@ -176,6 +176,63 @@ io.use((socket, next) => {
     });
 
     // ============================================================
+    // 🎥 WEBRTC VIDEO CALLING EVENTS
+    // ============================================================
+    
+    // Initiate a call
+    socket.on("call-user", ({ to, offer, from, chatID }) => {
+      console.log(`📞 Call from ${from} to ${to}`);
+      io.to(`user_${to}`).emit("incoming-call", {
+        from,
+        offer,
+        chatID,
+        signal: offer
+      });
+    });
+
+    // Accept the call
+    socket.on("call-accepted", ({ to, answer, from }) => {
+      console.log(`✅ Call accepted by ${from} to ${to}`);
+      io.to(`user_${to}`).emit("call-accepted", {
+        answer,
+        from
+      });
+    });
+
+    // Reject the call
+    socket.on("call-rejected", ({ to, from }) => {
+      console.log(`❌ Call rejected by ${from} to ${to}`);
+      io.to(`user_${to}`).emit("call-rejected", {
+        from
+      });
+    });
+
+    // Exchange ICE candidates
+    socket.on("ice-candidate", ({ to, candidate }) => {
+      io.to(`user_${to}`).emit("ice-candidate", {
+        candidate,
+        from: socket.userID
+      });
+    });
+
+    // End the call
+    socket.on("end-call", ({ to }) => {
+      console.log(`📴 Call ended by ${socket.userID} to ${to}`);
+      io.to(`user_${to}`).emit("call-ended", {
+        from: socket.userID
+      });
+    });
+
+    // Video toggled (camera on/off)
+    socket.on("video-toggled", ({ to, isVideoOff }) => {
+      console.log(`📹 Video toggled by ${socket.userID} to ${to}: ${isVideoOff ? 'OFF' : 'ON'}`);
+      io.to(`user_${to}`).emit("video-toggled", {
+        from: socket.userID,
+        isVideoOff
+      });
+    });
+
+    // ============================================================
     // 🔟 USER DISCONNECT
     // ============================================================
     socket.on("disconnect", () => {
